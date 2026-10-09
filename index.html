@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guestbook</title>
+<style>
+:root{
+  --pink-0:#fff4fb;
+  --pink-1:#ffd8ef;
+  --pink-2:#ffb6dc;
+  --pink-3:#ff8fc8;
+  --pink-4:#f264ad;
+  --pink-5:#e64e9b;
+  --ink:#4a2340;
+  --shadow:#f51d86;
+  --highlight:#fff8fc;
+  --desktop:#ff96ea;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent}
+body{
+  font-family:"MS UI Gothic","Tahoma","Verdana",sans-serif;
+  font-size:14px;
+  color:var(--ink);
+  padding:2px 6px 10px 2px;
+}
+button,input,textarea{font:inherit}
+button{color:inherit}
+
+.section-title{font-size:20px;margin:0 0 10px;text-align:center;color:#ff66c4}
+.pixel-divider{height:4px;margin:8px 0 16px;background:repeating-linear-gradient(90deg,#ff66c4 0 8px,#ffd5eb 8px 16px)}
+.small-note{font-size:12px;opacity:.8}
+
+/* Formulario (copiado de tu CSS) */
+.guestbook-form{display:grid;gap:12px}
+.guestbook-form label{display:grid;gap:4px;font-weight:bold}
+.guestbook-form input,.guestbook-form textarea{
+  border:2px inset #d874aa;background:white;padding:7px;color:#51233f
+}
+.guestbook-form textarea{min-height:110px;resize:vertical}
+.guestbook-form input:focus,.guestbook-form textarea:focus{outline:1px dotted #7f2b61}
+
+.retro-button{
+  border:2px solid #fff8fc;
+  border-right-color:#7d4565;
+  border-bottom-color:#7d4565;
+  background:#ff96ea;
+  height:30px;
+  width:max-content;
+  padding:0 12px;
+  box-shadow:inset 1px 1px 0 #ffeaf6;
+  cursor:pointer;
+}
+.retro-button:active{border-color:#7d4565 #fff8fc #fff8fc #7d4565;padding-top:1px}
+.retro-button:disabled{opacity:.6;cursor:wait}
+
+.form-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.status{font-size:12px;min-height:16px}
+.status.error{color:#c2185b;font-weight:bold}
+.status.ok{color:#2e7d32;font-weight:bold}
+
+/* Campo trampa para bots: invisible para personas */
+.hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+
+/* Mensajes con estilo de mini ventana */
+.entries{display:grid;gap:14px}
+.entry{
+  background:white;
+  border:2px solid var(--highlight);
+  border-right-color:#7f4569;
+  border-bottom-color:#7f4569;
+  box-shadow:2px 2px 0 #87ff8b;
+}
+.entry-bar{
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+  padding:3px 8px;
+  color:white;font-weight:bold;font-size:13px;letter-spacing:.3px;
+  background:linear-gradient(90deg,#86f78d,#ff70e2 58%,#ffa9d4);
+  border-bottom:2px solid #87ff8b;
+}
+.entry-bar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.entry-bar time{font-weight:normal;font-size:11px;white-space:nowrap}
+.entry-body{padding:8px 10px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.empty{text-align:center;font-size:12px;opacity:.8;margin:10px 0}
+</style>
+</head>
+<body>
+
+<h1 class="section-title">✿ Guestbook ✿</h1>
+<p class="small-note" style="text-align:center;margin-top:0">¡Déjame un mensajito! ♡</p>
+<div class="pixel-divider"></div>
+
+<form class="guestbook-form" id="gb-form" autocomplete="off" novalidate>
+  <label>Nombre
+    <input id="gb-name" type="text" maxlength="40" required>
+  </label>
+  <label>Mensaje
+    <textarea id="gb-message" maxlength="500" required></textarea>
+  </label>
+  <input class="hp" id="gb-website" type="text" tabindex="-1" aria-hidden="true" autocomplete="off">
+  <div class="form-row">
+    <button class="retro-button" type="submit" id="gb-submit">Firmar ♡</button>
+    <span class="small-note" id="gb-counter">0/500</span>
+  </div>
+  <div class="status" id="gb-status" role="status"></div>
+</form>
+
+<div class="pixel-divider"></div>
+
+<div class="entries" id="gb-entries">
+  <p class="empty">Cargando mensajes…</p>
+</div>
+
+<script>
+/* ===== Configuración ===== */
+const SUPABASE_URL = 'https://ayryybkfcmdkxptmawts.supabase.co'; // sin nada después de .co
+const SUPABASE_ANON_KEY = 'PEGA_AQUI_TU_ANON_KEY';                 // Project Settings > API > anon public
+const TABLE_URL = `${SUPABASE_URL}/rest/v1/guestbook`;
+const HEADERS = {
+  apikey: SUPABASE_ANON_KEY,
+  Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+};
+const MAX_NAME = 40;
+const MAX_MSG = 500;
+const COOLDOWN_MS = 30000; // 30 s entre firmas desde el mismo navegador
+
+/* ===== Elementos ===== */
+const form = document.getElementById('gb-form');
+const nameEl = document.getElementById('gb-name');
+const msgEl = document.getElementById('gb-message');
+const trapEl = document.getElementById('gb-website');
+const submitEl = document.getElementById('gb-submit');
+const counterEl = document.getElementById('gb-counter');
+const statusEl = document.getElementById('gb-status');
+const entriesEl = document.getElementById('gb-entries');
+
+/* ===== Utilidades ===== */
+function escapeHTML(str){
+  return String(str).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function formatDate(iso){
+  return new Date(iso).toLocaleString('es-MX', {
+    day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
+  });
+}
+
+function setStatus(text, type){
+  statusEl.textContent = text;
+  statusEl.className = 'status' + (type ? ' ' + type : '');
+}
+
+/* Le avisa a la página de Neocities cuánto mide este contenido */
+function reportHeight(){
+  if (window.parent !== window){
+    window.parent.postMessage(
+      { type:'guestbook-height', height: document.documentElement.scrollHeight },
+      '*'
+    );
+  }
+}
+new ResizeObserver(reportHeight).observe(document.body);
+window.addEventListener('load', reportHeight);
+
+function getLastPost(){
+  try { return Number(localStorage.getItem('gb-last-post')) || 0; } catch(e){ return 0; }
+}
+function setLastPost(){
+  try { localStorage.setItem('gb-last-post', String(Date.now())); } catch(e){}
+}
+
+/* ===== Leer mensajes ===== */
+async function loadMessages(){
+  try{
+    const res = await fetch(
+      `${TABLE_URL}?select=id,name,message,created_at&order=created_at.desc&limit=100`,
+      { headers: HEADERS }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    renderMessages(await res.json());
+  }catch(err){
+    console.error('Guestbook loading error:', err);
+    entriesEl.innerHTML = '<p class="empty">No se pudieron cargar los mensajes. Intenta más tarde ♡</p>';
+  }
+}
+
+function renderMessages(rows){
+  if (!rows.length){
+    entriesEl.innerHTML = '<p class="empty">Aún no hay mensajes. ¡Sé la primera persona en firmar!</p>';
+    return;
+  }
+  entriesEl.innerHTML = rows.map(r =>
+    `<article class="entry">` +
+      `<div class="entry-bar"><span>♡ ${escapeHTML(r.name)}</span>` +
+      `<time datetime="${escapeHTML(r.created_at)}">${formatDate(r.created_at)}</time></div>` +
+      `<div class="entry-body">${escapeHTML(r.message)}</div>` +
+    `</article>`
+  ).join('');
+}
+
+/* ===== Enviar mensaje ===== */
+msgEl.addEventListener('input', () => {
+  counterEl.textContent = `${msgEl.value.length}/${MAX_MSG}`;
+});
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  // Si un bot llenó el campo trampa, fingimos éxito y no guardamos nada
+  if (trapEl.value){
+    form.reset();
+    setStatus('¡Gracias por firmar! ♡', 'ok');
+    return;
+  }
+
+  const name = nameEl.value.trim();
+  const message = msgEl.value.trim();
+
+  if (!name || !message){
+    setStatus('Escribe tu nombre y un mensaje.', 'error');
+    return;
+  }
+  if (name.length > MAX_NAME || message.length > MAX_MSG){
+    setStatus(`El nombre admite ${MAX_NAME} caracteres y el mensaje ${MAX_MSG}.`, 'error');
+    return;
+  }
+  const wait = COOLDOWN_MS - (Date.now() - getLastPost());
+  if (wait > 0){
+    setStatus(`Espera ${Math.ceil(wait / 1000)} segundos para volver a firmar.`, 'error');
+    return;
+  }
+
+  submitEl.disabled = true;
+  setStatus('Enviando…');
+
+  try{
+    const res = await fetch(TABLE_URL, {
+      method: 'POST',
+      headers: { ...HEADERS, 'Content-Type':'application/json', Prefer:'return=minimal' },
+      body: JSON.stringify({ name, message })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+
+    setLastPost();
+    form.reset();
+    counterEl.textContent = `0/${MAX_MSG}`;
+    setStatus('¡Gracias por firmar! ♡', 'ok');
+    await loadMessages();
+  }catch(err){
+    console.error('Guestbook submit error:', err);
+    setStatus('No se pudo enviar tu mensaje. Intenta de nuevo.', 'error');
+  }finally{
+    submitEl.disabled = false;
+  }
+});
+
+loadMessages();
+</script>
+</body>
+</html>
