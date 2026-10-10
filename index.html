@@ -33,7 +33,14 @@ button{color:inherit}
 .pixel-divider{height:4px;margin:8px 0 16px;background:repeating-linear-gradient(90deg,#ff66c4 0 8px,#ffd5eb 8px 16px)}
 .small-note{font-size:12px;opacity:.8}
 
-/* Formulario (copiado de tu CSS) */
+/* ===== Vistas: ?view=form  |  ?view=messages  |  sin parámetro = todo ===== */
+body[data-view="form"] #view-messages{display:none}
+body[data-view="messages"] #view-form{display:none}
+.only-messages{display:none}
+body[data-view="messages"] .only-messages{display:block}
+body[data-view="messages"] .only-all{display:none}
+
+/* Formulario */
 .guestbook-form{display:grid;gap:12px}
 .guestbook-form label{display:grid;gap:4px;font-weight:bold}
 .guestbook-form input,.guestbook-form textarea{
@@ -61,10 +68,10 @@ button{color:inherit}
 .status.error{color:#c2185b;font-weight:bold}
 .status.ok{color:#2e7d32;font-weight:bold}
 
-/* Campo trampa para bots: invisible para personas */
+/* Campo trampa para bots */
 .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
 
-/* Mensajes con estilo de mini ventana */
+/* Mensajes */
 .entries{display:grid;gap:14px}
 .entry{
   background:white;
@@ -88,35 +95,44 @@ button{color:inherit}
 </head>
 <body>
 
-<h1 class="section-title">✿ Guestbook ✿</h1>
-<p class="small-note" style="text-align:center;margin-top:0">¡Déjame un mensajito! ♡</p>
-<div class="pixel-divider"></div>
+<!-- ===== VISTA: FORMULARIO ===== -->
+<section id="view-form">
+  <h1 class="section-title">✿ Guestbook ✿</h1>
+  <p class="small-note" style="text-align:center;margin-top:0">¡Déjame un mensajito! ♡</p>
+  <div class="pixel-divider"></div>
 
-<form class="guestbook-form" id="gb-form" autocomplete="off" novalidate>
-  <label>Nombre
-    <input id="gb-name" type="text" maxlength="40" required>
-  </label>
-  <label>Mensaje
-    <textarea id="gb-message" maxlength="500" required></textarea>
-  </label>
-  <input class="hp" id="gb-website" type="text" tabindex="-1" aria-hidden="true" autocomplete="off">
-  <div class="form-row">
-    <button class="retro-button" type="submit" id="gb-submit">Firmar ♡</button>
-    <span class="small-note" id="gb-counter">0/500</span>
+  <form class="guestbook-form" id="gb-form" autocomplete="off" novalidate>
+    <label>Nombre
+      <input id="gb-name" type="text" maxlength="40" required>
+    </label>
+    <label>Mensaje
+      <textarea id="gb-message" maxlength="500" required></textarea>
+    </label>
+    <input class="hp" id="gb-website" type="text" tabindex="-1" aria-hidden="true" autocomplete="off">
+    <div class="form-row">
+      <button class="retro-button" type="submit" id="gb-submit">Firmar ♡</button>
+      <span class="small-note" id="gb-counter">0/500</span>
+    </div>
+    <div class="status" id="gb-status" role="status"></div>
+  </form>
+</section>
+
+<!-- ===== VISTA: MENSAJES ===== -->
+<section id="view-messages">
+  <div class="pixel-divider only-all"></div>
+  <div class="only-messages">
+    <h2 class="section-title">✿ Mensajes ✿</h2>
+    <div class="pixel-divider"></div>
   </div>
-  <div class="status" id="gb-status" role="status"></div>
-</form>
-
-<div class="pixel-divider"></div>
-
-<div class="entries" id="gb-entries">
-  <p class="empty">Cargando mensajes…</p>
-</div>
+  <div class="entries" id="gb-entries">
+    <p class="empty">Cargando mensajes…</p>
+  </div>
+</section>
 
 <script>
 /* ===== Configuración ===== */
 const SUPABASE_URL = 'https://ayryybkfcmdkxptmawts.supabase.co'; // sin nada después de .co
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5cnl5YmtmY21ka3hwdG1hd3RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1MDg3OTAsImV4cCI6MjEwNzA4NDc5MH0.7rFHEHL2thy_504Wc3rN3QDZOHDQft7w6pz-SESD7tc';                 // Project Settings > API > anon public
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5cnl5YmtmY21ka3hwdG1hd3RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1MDg3OTAsImV4cCI6MjEwNzA4NDc5MH0.7rFHEHL2thy_504Wc3rN3QDZOHDQft7w6pz-SESD7tc'; // anon public
 const TABLE_URL = `${SUPABASE_URL}/rest/v1/guestbook`;
 const HEADERS = {
   apikey: SUPABASE_ANON_KEY,
@@ -124,7 +140,16 @@ const HEADERS = {
 };
 const MAX_NAME = 40;
 const MAX_MSG = 500;
-const COOLDOWN_MS = 30000; // 30 s entre firmas desde el mismo navegador
+const COOLDOWN_MS = 30000;
+
+/* ===== Qué vista mostrar ===== */
+const VIEW = (() => {
+  const v = new URLSearchParams(location.search).get('view');
+  return v === 'form' || v === 'messages' ? v : 'all';
+})();
+document.body.dataset.view = VIEW;
+const SHOWS_FORM = VIEW !== 'messages';
+const SHOWS_MESSAGES = VIEW !== 'form';
 
 /* ===== Elementos ===== */
 const form = document.getElementById('gb-form');
@@ -154,11 +179,13 @@ function setStatus(text, type){
   statusEl.className = 'status' + (type ? ' ' + type : '');
 }
 
-/* Le avisa a la página de Neocities cuánto mide este contenido */
+function inIframe(){ return window.parent !== window; }
+
+/* Le avisa a Neocities cuánto mide ESTA vista */
 function reportHeight(){
-  if (window.parent !== window){
+  if (inIframe()){
     window.parent.postMessage(
-      { type:'guestbook-height', height: document.documentElement.scrollHeight },
+      { type:'guestbook-height', view: VIEW, height: document.documentElement.scrollHeight },
       '*'
     );
   }
@@ -202,6 +229,13 @@ function renderMessages(rows){
   ).join('');
 }
 
+/* La vista de mensajes se recarga cuando Neocities le avisa que hubo una firma nueva */
+window.addEventListener('message', (e) => {
+  if (SHOWS_MESSAGES && e.data && e.data.type === 'guestbook-refresh'){
+    loadMessages();
+  }
+});
+
 /* ===== Enviar mensaje ===== */
 msgEl.addEventListener('input', () => {
   counterEl.textContent = `${msgEl.value.length}/${MAX_MSG}`;
@@ -210,7 +244,6 @@ msgEl.addEventListener('input', () => {
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  // Si un bot llenó el campo trampa, fingimos éxito y no guardamos nada
   if (trapEl.value){
     form.reset();
     setStatus('¡Gracias por firmar! ♡', 'ok');
@@ -249,7 +282,12 @@ form.addEventListener('submit', async (e) => {
     form.reset();
     counterEl.textContent = `0/${MAX_MSG}`;
     setStatus('¡Gracias por firmar! ♡', 'ok');
-    await loadMessages();
+
+    if (SHOWS_MESSAGES){
+      await loadMessages();                                   // vista completa: recarga aquí mismo
+    } else if (inIframe()){
+      window.parent.postMessage({ type:'guestbook-new-entry' }, '*'); // avisa a Neocities
+    }
   }catch(err){
     console.error('Guestbook submit error:', err);
     setStatus('No se pudo enviar tu mensaje. Intenta de nuevo.', 'error');
@@ -258,7 +296,7 @@ form.addEventListener('submit', async (e) => {
   }
 });
 
-loadMessages();
+if (SHOWS_MESSAGES) loadMessages();
 </script>
 </body>
 </html>
