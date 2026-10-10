@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Guestbook</title>
+<title>guestbook</title>
 <style>
 :root{
   --pink-0:#fff4fb;
@@ -57,8 +57,9 @@ body[data-view="messages"] .only-all{display:none}
   height:30px;
   width:max-content;
   padding:0 12px;
-  box-shadow:inset 1px 1px 0 #ffeaf6;
+  box-shadow:inset 1px 1px 0 #87ff8b;
   cursor:pointer;
+  text-color:#f5f5f5;
 }
 .retro-button:active{border-color:#7d4565 #fff8fc #fff8fc #7d4565;padding-top:1px}
 .retro-button:disabled{opacity:.6;cursor:wait}
@@ -84,8 +85,8 @@ body[data-view="messages"] .only-all{display:none}
   display:flex;justify-content:space-between;align-items:center;gap:8px;
   padding:3px 8px;
   color:white;font-weight:bold;font-size:14px;letter-spacing:.3px;
-  background:#ff70e2;
-  border-bottom:2px solid #87ff8b;
+  background:#ff96ea;
+  border-bottom:1px solid #87ff8b;
 }
 .entry-bar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .entry-bar time{font-weight:normal;font-size:11px;white-space:nowrap}
@@ -98,7 +99,7 @@ body[data-view="messages"] .only-all{display:none}
 <!-- ===== VISTA: FORMULARIO ===== -->
 <section id="view-form">
   <h1 class="section-title"> ★ guestbook ★ </h1>
-  <p class="small-note" style="text-align:center;margin-top:0">¡Déjame un mensajito! ♡</p>
+  <p class="small-note" style="text-align:center;margin-top:0">(´･ω･`) ♡ </p>
   <div class="pixel-divider"></div>
 
   <form class="guestbook-form" id="gb-form" autocomplete="off" novalidate>
@@ -110,7 +111,7 @@ body[data-view="messages"] .only-all{display:none}
     </label>
     <input class="hp" id="gb-website" type="text" tabindex="-1" aria-hidden="true" autocomplete="off">
     <div class="form-row">
-      <button class="retro-button" type="submit" id="gb-submit">Firmar ♡</button>
+      <button class="retro-button" type="submit" id="gb-submit">send ♡</button>
       <span class="small-note" id="gb-counter">0/500</span>
     </div>
     <div class="status" id="gb-status" role="status"></div>
