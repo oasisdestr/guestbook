@@ -83,8 +83,8 @@ body[data-view="messages"] .only-all{display:none}
 .entry-bar{
   display:flex;justify-content:space-between;align-items:center;gap:8px;
   padding:3px 8px;
-  color:white;font-weight:bold;font-size:13px;letter-spacing:.3px;
-  background:linear-gradient(90deg,#86f78d,#ff70e2 58%,#ffa9d4);
+  color:white;font-weight:bold;font-size:14px;letter-spacing:.3px;
+  background:#ff70e2;
   border-bottom:2px solid #87ff8b;
 }
 .entry-bar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -97,15 +97,15 @@ body[data-view="messages"] .only-all{display:none}
 
 <!-- ===== VISTA: FORMULARIO ===== -->
 <section id="view-form">
-  <h1 class="section-title">✿ Guestbook ✿</h1>
+  <h1 class="section-title"> ★ guestbook ★ </h1>
   <p class="small-note" style="text-align:center;margin-top:0">¡Déjame un mensajito! ♡</p>
   <div class="pixel-divider"></div>
 
   <form class="guestbook-form" id="gb-form" autocomplete="off" novalidate>
-    <label>Nombre
+    <label>your name
       <input id="gb-name" type="text" maxlength="40" required>
     </label>
-    <label>Mensaje
+    <label>leave a message!
       <textarea id="gb-message" maxlength="500" required></textarea>
     </label>
     <input class="hp" id="gb-website" type="text" tabindex="-1" aria-hidden="true" autocomplete="off">
@@ -121,11 +121,11 @@ body[data-view="messages"] .only-all{display:none}
 <section id="view-messages">
   <div class="pixel-divider only-all"></div>
   <div class="only-messages">
-    <h2 class="section-title">✿ Mensajes ✿</h2>
+    <h2 class="section-title"> messages  </h2>
     <div class="pixel-divider"></div>
   </div>
   <div class="entries" id="gb-entries">
-    <p class="empty">Cargando mensajes…</p>
+    <p class="empty">loading…</p>
   </div>
 </section>
 
